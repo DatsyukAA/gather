@@ -1,0 +1,88 @@
+using Account.Models;
+using Microsoft.Extensions.Options;
+using Account.Entities;
+using Account.Data;
+using Security;
+
+namespace Account.Services.Impl
+{
+    public class AccountService : IAccountService
+    {
+        private readonly IRepository<User> _accounts;
+        private readonly AppSettings _appSettings;
+        private readonly ITokenService _tokens;
+
+        public AccountService(
+            IRepository<User> accountRepos,
+            IOptions<AppSettings> appSettings,
+            ITokenService tokens)
+        {
+            _accounts = accountRepos;
+            _appSettings = appSettings.Value;
+            _tokens = tokens;
+        }
+        public AuthenticateResponse? RefreshToken(string token, string ip)
+        {
+            var user = _accounts.Single(u => u.RefreshTokens.Any(t => t.Token == token));
+
+            if (user == null) return null;
+            var refreshToken = user.RefreshTokens.Single(x => x.Token == token);
+
+            if (!refreshToken.IsActive) return null;
+
+            var newRefreshToken = _tokens.GenerateRefreshToken(ip);
+            refreshToken.Revoked = DateTime.UtcNow;
+            refreshToken.RevokedByIp = ip;
+            refreshToken.ReplacedByToken = newRefreshToken.Token;
+            user.RefreshTokens.Add(newRefreshToken);
+            _accounts.Update(user.Id, user);
+
+            var jwtToken = _tokens.GenerateJwtToken(user);
+
+            return new AuthenticateResponse(user, jwtToken, newRefreshToken.Token);
+        }
+
+        public AuthenticateResponse? Authenticate(string login, string password, string ip)
+        {
+            password = Authentication.HashPassword(password);
+            var user = _accounts.Single(x => x.Username == login && x.Password == password);
+
+            if (user == null) return null;
+
+            var jwtToken = _tokens.GenerateJwtToken(user);
+            var refreshToken = _tokens.GenerateRefreshToken(ip);
+
+            user.RefreshTokens.Add(refreshToken);
+            _accounts.Update(user.Id, user);
+
+            return new AuthenticateResponse(user, jwtToken, refreshToken.Token);
+        }
+
+        public bool RevokeToken(string token, string ip)
+        {
+            var user = _accounts.Single(u => u.RefreshTokens.Any(t => t.Token == token));
+            if (user == null) return false;
+
+            var refreshToken = user.RefreshTokens.Single(x => x.Token == token);
+
+            if (!refreshToken.IsActive) return false;
+
+            refreshToken.Revoked = DateTime.UtcNow;
+            refreshToken.RevokedByIp = ip;
+            _accounts.Update(user.Id, user);
+
+            return true;
+        }
+
+        public IEnumerable<User> GetAll()
+        {
+            return _accounts.List();
+        }
+
+        public User? GetById(int id)
+        {
+            return _accounts.Single(x => x.Id == id);
+        }
+    }
+}
+
