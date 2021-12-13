@@ -1,15 +1,15 @@
 export interface IEntity {
-    id: number;
+    id: string;
     creationDate: Date;
 }
 
 export class Entity implements IEntity {
 
-    id: number;
+    id: string;
     creationDate: Date;
 
-    constructor(_id: number) {
-        this.id = _id;
+    constructor(_id: string | number) {
+        this.id = _id.toString();
         this.creationDate = new Date(Date.now());
     }
 }

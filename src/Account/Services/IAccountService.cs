@@ -10,5 +10,6 @@ namespace Account.Services
         bool RevokeToken(string token, string ip);
         IEnumerable<User> GetAll();
         User? GetById(int id);
+        AuthenticateResponse? Register(string login, string password, string email, string name, string ip);
     }
 }

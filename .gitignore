@@ -2,6 +2,9 @@
 **/bin
 **/appsettings.Development.json
 **/.vscode
+**/.vs
 **/.idea
 config.ts
 **/node_modules
+**/.env
+**/*.js

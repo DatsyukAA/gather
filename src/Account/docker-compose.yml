@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  account:
+    image: ${DOCKER_REGISTRY-}account
+    build:
+      context: .
+      dockerfile: Dockerfile

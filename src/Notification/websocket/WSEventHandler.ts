@@ -1,12 +1,20 @@
 import { EEventType, IChatMessage, IWSSchema, WsClient } from "./types";
-import { Db } from "mongodb";
+import Notification from "../data/entities/Notification";
+import INotificationService from "../services/INotificationService";
 
 class WSEventHandler {
   constructor(
     private clients: WsClient[],
     private sender: WsClient,
-    private db: Db
-  ) { }
+    private service: INotificationService
+  ) { 
+    service.subscribe((notification: Notification) => {
+        this.send({
+          data: notification,
+          type: EEventType.MESSAGE
+        }, [sender.userId])
+    },sender.userId.toString())
+  }
 
   resolve(schema: IWSSchema) {
     switch (schema.type) {
@@ -17,23 +25,11 @@ class WSEventHandler {
   }
 
   onChatMessage = (chatMessage: IChatMessage) => {
-    // check with filter
-    this.db
-      .collection("messages")
-      .insertOne({
-        userId: this.sender.userId,
-        message: chatMessage,
-      })
-      .then((r) => {
-        console.log(
-          `element added. result = ${r.acknowledged == true ? "OK" : "Error"}`
-        );
-        this.send({
-          type: EEventType.MESSAGE,
-          data: chatMessage,
-        });
-      });
+    this.service.notify(
+      new Notification(this.sender.userId.toString(), chatMessage.title ?? '', chatMessage.message ?? ''), 
+      chatMessage.channelId)
   };
+  
   send = (message: IWSSchema, clients: number[] | undefined = undefined) => {
     let receivers = this.clients;
     if (clients !== undefined) {

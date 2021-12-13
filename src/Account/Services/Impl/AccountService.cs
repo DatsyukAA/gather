@@ -83,6 +83,22 @@ namespace Account.Services.Impl
         {
             return _accounts.Single(x => x.Id == id);
         }
+
+        public AuthenticateResponse? Register(string login, string password, string email, string name, string ip)
+        {
+            var names = name.Split(' ');
+            if (_accounts.List(x => x.Username == login || x.Email == email).Any()) return null;
+
+            var insertResult = _accounts.Insert(new User
+            {
+                Username = login,
+                Password = Authentication.HashPassword(password),
+                Email = email,
+                FirstName = names[0] ?? "",
+                LastName = names[1] ?? ""
+            });
+            return Authenticate(login, password, ip);
+        }
     }
 }
 

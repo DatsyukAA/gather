@@ -19,16 +19,28 @@ public class AuthenticationController : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpPost("~/signup")]
+    public IActionResult Register([FromBody] RegisterRequest model)
+    {
+        var response = _accountService.Register(model.Login, model.Password, model.Email, model.Name, this.IpAddress());
+
+        if (response == null)
+            return BadRequest(new { message = "User or email already registered." });
+
+        this.setCookie("refreshToken", response.RefreshToken);
+        return Ok(response);
+    }
+
+    [AllowAnonymous]
     [HttpPost("~/signin")]
     public IActionResult Authenticate([FromBody] AuthenticateRequest model)
     {
         var response = _accountService.Authenticate(model.Login, model.Password, this.IpAddress());
 
         if (response == null)
-            return BadRequest(new { message = "Username or password is incorrect" });
+            return BadRequest(new { message = "Username or password is incorrect." });
 
         this.setCookie("refreshToken", response.RefreshToken);
-
         return Ok(response);
     }
 

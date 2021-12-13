@@ -1,24 +1,22 @@
 import WebSocket from "ws";
 import WSEventHandler from "./WSEventHandler";
 import { EEventType, IWSSchema, WsClient } from "./types";
-import { Db } from "mongodb";
 import * as http from "http";
 import * as url from "url";
 import jwt from "jsonwebtoken";
-import { config } from "../appsettings";
-import aes from "../aes/aes";
+import { NotificationService } from "../services/Impl/NotificationService";
 
 class WSHandler {
   clients: WsClient[] = [];
 
-  constructor(wsServer: WebSocket.Server, private db: Db) {
+  constructor(wsServer: WebSocket.Server, private _notifications: NotificationService) {
     this.subscribe(wsServer);
   }
 
   parseJwt = (token: string) => {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const buff = new Buffer(base64, "base64");
+    const buff = Buffer.from(base64, "base64");
     const payloadinit = buff.toString("ascii");
     const payload = JSON.parse(payloadinit);
     return payload;
@@ -47,7 +45,7 @@ class WSHandler {
           this.clients.filter((element) => {
             return element.socket == ws;
           })[0],
-          this.db
+          this._notifications
         ).resolve(wsData);
       });
     });
@@ -63,15 +61,15 @@ class WSHandler {
       socket.close(4000, "Not authorized");
       return;
     }
-    //if gateway doesn't decrypt key or it passes through get/post param
-    const token = aes.Decrypt(queryParams.access_token?.toString());
+
+    const token = queryParams.access_token?.toString();
     jwt.verify(
       token,
-      Buffer.from(config.jwt.secret, "base64"), //throw depricated Buffer() when using string, but i actually have base64 encoded secret in token and it works fine
+      Buffer.from(process.env?.jwt_secret ?? '', "base64"),
       {
         algorithms: ["HS256"],
       },
-      (err, decoded: any) => {
+      (err: any, decoded: any) => {
         if (!!err || decoded === undefined || decoded.id === undefined) {
           console.log("Not authorized");
           return;

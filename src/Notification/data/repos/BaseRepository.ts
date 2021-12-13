@@ -38,7 +38,7 @@ export abstract class BaseRepository<T> implements IRepository<T> {
         if (take > -1) result.limit(take);
 
         return new Promise((resolve, _) => {
-            result.forEach(elem => {
+            result.forEach((elem: T) => {
                 resdata.push(elem)
             })
             resolve(resdata)

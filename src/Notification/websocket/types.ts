@@ -18,6 +18,7 @@ export enum EEventType {
 
 export interface IChatMessage {
   channelId: string;
+  title?: string;
   message?: string;
   attachments?: string[];
 }
