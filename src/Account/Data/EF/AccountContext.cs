@@ -20,8 +20,9 @@ public class AccountContext : DbContext
             new User
             {
                 Id = 1,
-                FirstName = "Admin",
-                LastName = "Admin",
+                FirstName = "Anton",
+                Email = "datsyukaa@gmail.com",
+                LastName = "Datsyuk",
                 Password = "c15580d4235128288768dccb287745bb25a6bc4fa01124608c826b8979016a13",
                 RefreshTokens = new List<RefreshToken>(),
                 Username = "Admin",

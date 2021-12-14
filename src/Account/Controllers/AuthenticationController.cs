@@ -1,3 +1,4 @@
+using Account.EventBus;
 using Account.Models;
 using Account.Services;
 using Account.Utils;
@@ -11,13 +12,26 @@ namespace Account.Controllers;
 [Route("/account")]
 public class AuthenticationController : ControllerBase
 {
-    private IAccountService _accountService;
+    private readonly IAccountService _accountService;
 
-    public AuthenticationController(IAccountService accountService)
+    private readonly IBus Bus;
+
+    public AuthenticationController(IAccountService accountService, IBus bus)
     {
         _accountService = accountService;
+        Bus = bus;
     }
-
+    [AllowAnonymous]
+    [HttpGet("~/signup")]
+    public IActionResult TestReg()
+    {
+        Bus.SendExchangeAsync("notifications", new UserCreatedNotification
+        {
+            Id = 1.ToString(),
+            Name = "John"
+        });
+        return Ok();
+    }
     [AllowAnonymous]
     [HttpPost("~/signup")]
     public IActionResult Register([FromBody] RegisterRequest model)
@@ -28,6 +42,12 @@ public class AuthenticationController : ControllerBase
             return BadRequest(new { message = "User or email already registered." });
 
         this.setCookie("refreshToken", response.RefreshToken);
+
+        Bus.SendExchangeAsync("notifications", new UserCreatedNotification
+        {
+            Id = response.Id.ToString(),
+            Name = response.Username
+        });
         return Ok(response);
     }
 

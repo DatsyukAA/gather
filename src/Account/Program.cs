@@ -9,6 +9,7 @@ using Account.Services.Impl;
 using Account.Entities;
 using Account.Data;
 using System.Security.Cryptography;
+using Account.EventBus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +50,9 @@ services.AddDbContext<AccountContext>((x) =>
 
 
 services.AddScoped<IRepository<User>, UserRepository>();
+
+services.AddSingleton<IBus>(serviceProvider => Rabbit.CreateBus("localhost"));
+
 
 services.AddCors();
 services.AddControllers();

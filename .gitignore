@@ -7,4 +7,4 @@
 config.ts
 **/node_modules
 **/.env
-**/*.js
+**/dist
