@@ -15,21 +15,25 @@ public class AuthenticationController : ControllerBase
     private readonly IAccountService _accountService;
 
     private readonly IBus Bus;
+    private readonly ILogger<AuthenticationController> _logger;
 
-    public AuthenticationController(IAccountService accountService, IBus bus)
+    public AuthenticationController(IAccountService accountService, IBus bus, ILogger<AuthenticationController> logger)
     {
         _accountService = accountService;
         Bus = bus;
+        _logger = logger;
     }
     [AllowAnonymous]
     [HttpGet("~/signup")]
     public IActionResult TestReg()
     {
-        Bus.SendExchangeAsync("notifications", new UserCreatedNotification
+        _logger.LogInformation("Username now join to us!");
+        Bus.SendExchangeAsync("notifications", new Notification
         {
-            Id = 1.ToString(),
-            Name = "John"
-        });
+            Sender = "",
+            Title = "User was registered",
+            Text = $"Username now join to us!"
+        }, "");
         return Ok();
     }
     [AllowAnonymous]
@@ -43,10 +47,11 @@ public class AuthenticationController : ControllerBase
 
         this.setCookie("refreshToken", response.RefreshToken);
 
-        Bus.SendExchangeAsync("notifications", new UserCreatedNotification
+        Bus.SendExchangeAsync("notifications", new Notification
         {
-            Id = response.Id.ToString(),
-            Name = response.Username
+            Sender = response.Id.ToString(),
+            Title = "User was registered",
+            Text = $"{response.Username} now join to us!"
         });
         return Ok(response);
     }

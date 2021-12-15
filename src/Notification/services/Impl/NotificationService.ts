@@ -28,11 +28,9 @@ export class NotificationService implements INotificationService {
             this._callbacks[channelId] = []
         } else {
             Object.keys(this._callbacks).forEach(channelId => {
-                console.log(`notification pushed to: ${channelId}`, this._callbacks[channelId])
-                this._callbacks[channelId].forEach((element: Function) => {
+                this._callbacks[channelId].forEach((element: (notification: Notification) => void) => {
                     element(notification);
-                }
-                )
+                });
                 this._callbacks[channelId] = []
             })
         }

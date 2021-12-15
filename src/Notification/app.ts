@@ -9,82 +9,49 @@ import * as http from "http";
 import WSHandler from "./websocket/WSHandler"
 import { NotificationService } from "./services/Impl/NotificationService";
 import NotificationRepository from "./data/repos/NotificationRepository";
-import amqp from 'amqplib/callback_api'
+import { notifications } from "./amqp/amqp";
+import Notification from "./data/entities/Notification";
+import auth from "./middlewares/auth";
 
 
 const app = express();
 const server = http.createServer(app);
 
-function withAMQP(callback: Function) {
-    amqp.connect('amqp://localhost', (err, connection) => {
-        if (err) throw err;
-        connection.createChannel((chErr, channel) => {
-            if (chErr) throw chErr;
-            callback(channel)
-        })
-    });
-}
-
-type MessageCallback = (message: amqp.Message | null) => void;
-
-function subscribeExchange(channel: amqp.Channel, queueName: string, action: MessageCallback, exchangeName: string = '', exchangeType: string = 'direct', queueBindPattern: string = '') {
-    channel.assertExchange(exchangeName, exchangeType, {
-        durable: false
-    }, (errExchange, exchangeResult) => {
-        if (errExchange) throw errExchange;
-        subscribeQueue(channel, queueName, action, true, exchangeResult.exchange, queueBindPattern)
-    })
-}
-
-function subscribeQueue(channel: amqp.Channel, queueName: string, action: MessageCallback, bindExchange: boolean = false, exchangeName: string = '', queueBindPattern: string = '') {
-    channel.assertQueue(queueName, {
-        exclusive: true
-    }, (errQueue, queueResult) => {
-        if (errQueue) throw errQueue;
-        if (bindExchange)
-            channel.bindQueue(queueResult.queue, exchangeName, queueBindPattern)
-
-        channel.consume(queueResult.queue, action, {
-            noAck: true
-        })
-    });
-}
-
-function withMongo(callback: Function) {
+const withMongo = () => new Promise<MongoClient>((resolve, reject) => {
     MongoClient.connect(
         config.mongo.connectionStrings.default ?? process.env.DATABASE, {},
         (err, mongodb) => {
-            if (err) throw err;
-            if (mongodb == undefined) throw new Error('mongodb undefined');
-            callback(mongodb)
+            if (!!err)
+                reject(err)
+            if (!!mongodb)
+                resolve(mongodb)
+            reject(new Error('mongodb undefined'));
         }
     );
-}
-
-const middlewares = [requestLogger, bodyParser];
+})
+const middlewares = [requestLogger,/*auth,*/bodyParser];
 const controllers = [notificationController];
-middlewares.forEach((element) => {
-    app.use(element);
-});
 
-
-const wss = new WebSocket.Server({
-    server
-});
-
-
-withMongo((mongodb: MongoClient) => {
+withMongo().then((mongodb: MongoClient) => {
     const notificationRepos = new NotificationRepository(mongodb.db(config.mongo.dbName || process.env.DATABASE), 'notifications');
     const notificationService = new NotificationService(notificationRepos);
 
-    withAMQP((channel: amqp.Channel) => {
-        subscribeExchange(channel, 'notificationQueue', (message: amqp.Message | null) => {
-            let messageObj = JSON.parse(message?.content?.toString() ?? '');
-            Object.keys(messageObj).forEach(key => {
-                console.log(key, messageObj[key]);
-            });
-        }, 'notifications')
-    })
+    notifications.then((data) => {
+        data.channel.consume(data.queue, (message) => {
+            const data = JSON.parse(message?.content.toString() ?? '');
+            notificationService.notify(new Notification(data.Sender, data.Title, data.Text))
+        });
+    });
+
+    middlewares.forEach((element) => {
+        app.use(element);
+    });
+
+
+    const wss = new WebSocket.Server({
+        server
+    });
+
     controllers.forEach((element) => {
         element(app, notificationService);
     });
@@ -95,4 +62,4 @@ withMongo((mongodb: MongoClient) => {
     server.listen(process.env.PORT || config.port, () => {
         return console.log(`server started on ${config.port}...`);
     });
-})
+});

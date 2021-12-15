@@ -10,10 +10,19 @@ using Account.Entities;
 using Account.Data;
 using System.Security.Cryptography;
 using Account.EventBus;
+using Account.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Host.ConfigureLogging(builder =>
+{
+    builder.AddRabbitLogger(configuration =>
+    {
+        configuration.Exchange = "logs";
+        configuration.Bus = Rabbit.CreateBus("localhost");
+    });
+});
 var services = builder.Services;
 // Configuration
 services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
@@ -51,7 +60,7 @@ services.AddDbContext<AccountContext>((x) =>
 
 services.AddScoped<IRepository<User>, UserRepository>();
 
-services.AddSingleton<IBus>(serviceProvider => Rabbit.CreateBus("localhost"));
+services.AddSingleton<IBus>(serviceProvider => Rabbit.CreateBus(appSettings.NotificationHost));
 
 
 services.AddCors();
@@ -60,11 +69,13 @@ services.AddControllers();
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
+
+
 var app = builder.Build();
-using (var serviceScope = app.Services.GetService<IServiceScopeFactory>().CreateScope())
+using (var serviceScope = app.Services.GetService<IServiceScopeFactory>()?.CreateScope())
 {
-    var IdentityContext = serviceScope.ServiceProvider.GetRequiredService<AccountContext>();
-    IdentityContext.Database.EnsureCreated();
+    var IdentityContext = serviceScope?.ServiceProvider.GetRequiredService<AccountContext>();
+    IdentityContext?.Database.EnsureCreated();
 }
 
 app.UseCors(x => x
