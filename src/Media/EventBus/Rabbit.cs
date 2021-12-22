@@ -1,6 +1,6 @@
 ﻿using RabbitMQ.Client;
 
-namespace Account.EventBus
+namespace Media.EventBus
 {
     public class Rabbit
     {

@@ -3,7 +3,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 
-namespace Account.EventBus
+namespace Media.EventBus
 {
     public class RabbitBus : IBus
     {

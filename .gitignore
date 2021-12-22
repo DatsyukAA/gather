@@ -4,7 +4,7 @@
 **/.vscode
 **/.vs
 **/.idea
-config.ts
+**/config.*
 **/node_modules
 **/.env
 **/dist

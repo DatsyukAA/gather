@@ -24,8 +24,8 @@ public class AuthenticationController : ControllerBase
         _logger = logger;
     }
     [AllowAnonymous]
-    [HttpGet("~/signup")]
-    public IActionResult TestReg()
+    [HttpGet("~/test")]
+    public IActionResult Test()
     {
         _logger.LogInformation("Username now join to us!");
         Bus.SendExchangeAsync("notifications", new Notification
@@ -34,6 +34,15 @@ public class AuthenticationController : ControllerBase
             Title = "User was registered",
             Text = $"Username now join to us!"
         }, "");
+        Bus.SendExchangeAsync("media", new Message
+        {
+            Sender = "409771946",
+            Id = "37",
+            Channel = "409771946",
+            MediaService = "telegram",
+            Target = "",
+            Text = $"Hello, {409771946}"
+        }, "media.send.telegram");
         return Ok();
     }
     [AllowAnonymous]

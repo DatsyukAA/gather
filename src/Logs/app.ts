@@ -15,16 +15,23 @@ const subscribeExchange = (channel: amqp.Channel, exchangeName: string, exchange
     channel.assertExchange(exchangeName, exchangeType, {
         durable: false
     }, (errExchange, exchangeResult) => {
+        console.log('exchange err', errExchange);
+        console.log('exchange', exchangeResult);
         if (errExchange) reject(errExchange);
         resolve(exchangeResult.exchange)
     })
 });
 const subscribeQueue = (channel: amqp.Channel, queueName: string, action: (message: amqp.Message | null) => void, exchangeName?: string, queueBindPattern?: string) => new Promise((resolve, reject) => {
-    channel.assertQueue(queueName, {}, (errQueue, queueResult) => {
+    channel.assertQueue(queueName, {
+        durable: true,
+        autoDelete: true
+    }, (errQueue, queueResult) => {
         if (errQueue) reject(errQueue);
         if (!!exchangeName)
             channel.bindQueue(queueResult.queue, exchangeName, queueBindPattern ?? '')
-        channel.consume(queueResult.queue, action)
+        channel.consume(queueResult.queue, action, {
+            noAck: true
+        })
     });
 });
 
@@ -39,21 +46,19 @@ const subscribeLog = (channel: amqp.Channel, message: amqp.Message, logLevel: st
             console.error(err)
             return
         }
-        channel.ack(message);
     })
     console.log(`[${messageObj.Time}][${logLevel}] ${messageObj.Message}`);
 }
 
 withAMQP().then((channel: amqp.Channel) => {
-    subscribeExchange(channel, 'logs').then((exchange) => {
-        subscribeQueue(channel, 'notifications', (message) => {
-            console.log(message?.fields);
-            let messageObj = JSON.parse(message?.content?.toString() ?? '');
-            Object.keys(messageObj).forEach(key => {
-                console.log(key, messageObj[key]);
-            });
-        }, exchange);
+    subscribeExchange(channel, 'media', 'topic').then((exchange) => {
 
+        subscribeQueue(channel, 'mediaQueue', (message) => {
+            console.log(message)
+        }, exchange, 'media.sent.*');
+    });
+
+    subscribeExchange(channel, 'logs').then((exchange) => {
         subscribeQueue(channel, 'logDebug', (message) => {
             if (!!message) console.log('message is null')
             if (message)

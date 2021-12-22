@@ -53,41 +53,30 @@ class WSHandler {
 
   onConnect = (socket: WebSocket, req: http.IncomingMessage) => {
     const queryParams = url.parse(req.url || "", true).query;
-    console.log("client trying connect");
-    if (queryParams.access_token === undefined) {
-      this.clients = this.clients.filter((x) => {
-        x.socket !== socket;
-      });
-      socket.close(4000, "Not authorized");
-      return;
-    }
 
     const token = queryParams.access_token?.toString();
     jwt.verify(
-      token,
+      token ?? '',
       Buffer.from(process.env?.jwt_secret ?? '', "base64"),
       {
         algorithms: ["HS256"],
       },
-      (err: any, decoded: any) => {
-        if (!!err || decoded === undefined || decoded.id === undefined) {
-          console.log("Not authorized");
-          return;
-        }
-        this.clients.forEach((element) => {
-          element.socket.send(
-            JSON.stringify({
-              type: EEventType.CONNECT,
-              data: {
-                id: decoded.id,
-              },
-            })
-          );
-        });
+      (err: any, user: any) => {
         console.log(`User connected`);
+        this._notifications.subscribe((data) => {
+          socket.send(JSON.stringify({
+            type: EEventType.MESSAGE,
+            data: {
+              sender: data.sender,
+              title: data.title,
+              date: data.creationDate,
+              text: data.text
+            },
+          }))
+        }, user?.id ?? 'public')
         this.clients.push({
           socket,
-          userId: decoded.id,
+          userId: user?.id ?? 'public',
         });
       }
     );
