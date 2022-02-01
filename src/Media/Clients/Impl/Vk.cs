@@ -29,6 +29,7 @@ namespace Media.Clients.Impl
         {
             Instance.Authorize(authParams);
             var longPoolServer = await Instance.Groups.GetLongPollServerAsync(ulong.Parse(Configuration["Vk:GroupId"]));
+            Logger?.LogInformation($"[{GetType().Name}] Client started.");
             while (!(token?.IsCancellationRequested ?? false))
             {
                 var pool = await Instance.Groups.GetBotsLongPollHistoryAsync(new VkNet.Model.RequestParams.BotsLongPollHistoryParams
@@ -82,6 +83,7 @@ namespace Media.Clients.Impl
                     RandomId = long.Parse(message.Id)
                 };
                 await Instance.Messages.SendAsync(parameters);
+                Logger?.LogInformation($"[{GetType().Name}][Sent][{channel}] {message.Text}");
             }
             catch (Exception ex)
             {
@@ -94,6 +96,7 @@ namespace Media.Clients.Impl
             if (!_actions.ContainsKey(channel))
                 _actions.Add(channel, new List<Action<Models.Message>> { action });
             else _actions[channel].Add(action);
+            Logger?.LogInformation($"[{GetType().Name}] Added action to {channel}.");
             return Task.CompletedTask;
         }
 
@@ -102,10 +105,12 @@ namespace Media.Clients.Impl
             if (action == null)
             {
                 _actions.Remove(channel);
+                Logger?.LogInformation($"[{GetType().Name}] Cleared actions from {channel}.");
             }
             else
             {
                 _actions[channel] = _actions[channel].Where(x => x != action).ToList();
+                Logger?.LogInformation($"[{GetType().Name}] Removed action from {channel}.");
             }
 
             return Task.CompletedTask;

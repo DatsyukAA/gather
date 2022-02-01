@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace Account.Models
 {

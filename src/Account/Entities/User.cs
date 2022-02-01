@@ -19,8 +19,11 @@ namespace Account.Entities
         public string Password { get; set; }
 
         [JsonIgnore]
-        public List<RefreshToken> RefreshTokens { get; set; }
+        public List<RefreshToken> RefreshTokens { get; set; } = new();
+        [JsonIgnore]
+        public DateTime CreationDate { get; set; } = DateTime.UtcNow;
 
-        public DateTime CreationDate { get; } = DateTime.UtcNow;
+        [JsonIgnore]
+        public List<string> IpHistory { get; set; } = new();
     }
 }

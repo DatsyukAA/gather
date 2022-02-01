@@ -11,7 +11,7 @@ namespace Media.Clients.Impl
     {
         public ITelegramBotClient Client { get; }
         public User? Me { get; private set; }
-        private ILogger<Telegram> Logger { get; }
+        private ILogger<Telegram>? Logger { get; }
 
         private readonly Dictionary<string, IList<Action<Models.Message>>> _actions = new();
         public Telegram(IConfiguration configuration, ILogger<Telegram> logger)
@@ -27,12 +27,14 @@ namespace Media.Clients.Impl
 
         public void Dispose()
         {
+            Logger?.LogInformation($"[{GetType().Name}] Client disposed.");
         }
 
         public async Task Publish(string channel, Models.Message message, CancellationToken? token = null)
         {
             var targetResult = int.TryParse(message.Target, out var target);
             await Client.SendTextMessageAsync(channel, message.Text, replyToMessageId: targetResult ? target : null);
+            Logger?.LogInformation($"[{GetType().Name}][Sent][{channel}] {message.Text}");
         }
 
         public async Task Start(CancellationToken? token = null)
@@ -40,6 +42,7 @@ namespace Media.Clients.Impl
             var cts = new CancellationTokenSource();
             Me = await Client.GetMeAsync();
             ReceiverOptions receiverOptions = new() { AllowedUpdates = { } };
+            Logger?.LogInformation($"[{GetType().Name}] Client started.");
             Client.StartReceiving(
                                 async (bot, update, token) =>
                                 {
@@ -47,8 +50,8 @@ namespace Media.Clients.Impl
                                     {
                                         UpdateType.Message => BotOnMessageReceived(bot, update.Message!),
                                         UpdateType.EditedMessage => BotOnMessageReceived(bot, update.EditedMessage!),
-                                        _ => Task.Run(() => 
-                                                Logger.LogWarning($"called unsupported update type $0", update.Type), token)
+                                        _ => Task.Run(() =>
+                                                Logger?.LogWarning($"called unsupported update type $0", update.Type), token)
                                     };
 
                                     try
@@ -57,12 +60,12 @@ namespace Media.Clients.Impl
                                     }
                                     catch (Exception exception)
                                     {
-                                        Logger.LogError(message: exception.Message);
+                                        Logger?.LogError(message: exception.Message);
                                     }
                                 },
                                async (bot, exception, token) =>
                                {
-                                   Logger.LogError(message: exception.Message);
+                                   Logger?.LogError(message: exception.Message);
                                    await Task.CompletedTask;
                                },
                                receiverOptions,
@@ -97,6 +100,7 @@ namespace Media.Clients.Impl
             if (!_actions.ContainsKey(channel))
                 _actions.Add(channel, new List<Action<Models.Message>> { action });
             else _actions[channel].Add(action);
+            Logger?.LogInformation($"[{GetType().Name}] Added action to {channel}.");
             return Task.CompletedTask;
         }
 
@@ -105,10 +109,12 @@ namespace Media.Clients.Impl
             if (action == null)
             {
                 _actions.Remove(channel);
+                Logger?.LogInformation($"[{GetType().Name}] Cleared actions from {channel}.");
             }
             else
             {
                 _actions[channel] = _actions[channel].Where(x => x != action).ToList();
+                Logger?.LogInformation($"[{GetType().Name}] Removed action from {channel}.");
             }
 
             return Task.CompletedTask;

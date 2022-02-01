@@ -11,24 +11,48 @@ using Account.Data;
 using System.Security.Cryptography;
 using Account.EventBus;
 using Account.Logging;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using RabbitMQ.Client.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Host.ConfigureLogging(builder =>
 {
-    builder.AddRabbitLogger(configuration =>
+    try
     {
-        configuration.Exchange = "logs";
-        configuration.Bus = Rabbit.CreateBus("localhost");
-    });
+        builder.AddRabbitLogger(configuration =>
+        {
+            configuration.Exchange = "logs";
+            configuration.Bus = Rabbit.CreateBus("localhost");
+        });
+    }
+    catch (BrokerUnreachableException ex)
+    {
+        Console.Error.WriteLine($"RabbitMQ is unreachable\nTrace: {ex.StackTrace}");
+    }
+    builder.AddConsole();
 });
+
 var services = builder.Services;
+
+var healthCheck = services.AddHealthChecks();
 // Configuration
 services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
 var appSettings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>();
 services.AddSingleton<AppSettings>(appSettings);
-services.AddSingleton<RandomNumberGenerator, RNGCryptoServiceProvider>();
+// DI setup
+services.AddScoped<ITokenService, TokenService>();
+services.AddScoped<IAccountService, AccountService>();
+
+services.AddDbContext<AccountContext>((x) =>
+{
+    x.UseInMemoryDatabase("Account");
+});
+healthCheck.AddDbContextCheck<AccountContext>();
+
+services.AddSingleton<RandomNumberGenerator>(sp => RandomNumberGenerator.Create());
 // Authentication
 var key = Encoding.ASCII.GetBytes(appSettings.Secret);
 services.AddAuthentication(x =>
@@ -49,29 +73,40 @@ services.AddAuthentication(x =>
                     ClockSkew = TimeSpan.Zero
                 };
             });
-// DI setup
-services.AddScoped<ITokenService, TokenService>();
-services.AddScoped<IAccountService, AccountService>();
-services.AddDbContext<AccountContext>((x) =>
- {
-     x.UseInMemoryDatabase("Account");
- });
-
 
 services.AddScoped<IRepository<User>, UserRepository>();
 
-services.AddSingleton<IBus>(serviceProvider => Rabbit.CreateBus(appSettings.NotificationHost));
+services.AddSingleton<IBus>(serviceProvider =>
+{
+    var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger<Program>();
+    try
+    {
+        return Rabbit.CreateBus(appSettings.NotificationHost);
+    }
+    catch (BrokerUnreachableException ex)
+    {
+        logger?.LogError($"RabbitMQ is unreachable.\nTrace: {ex.StackTrace}");
+    }
+    return null;
+});
 
-
+services.AddHttpContextAccessor();
 services.AddCors();
 services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
-
-
 var app = builder.Build();
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = (check) => true,
+    ResultStatusCodes = {
+        [HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [HealthStatus.Degraded] = StatusCodes.Status200OK,
+        [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+    }
+});
 using (var serviceScope = app.Services.GetService<IServiceScopeFactory>()?.CreateScope())
 {
     var IdentityContext = serviceScope?.ServiceProvider.GetRequiredService<AccountContext>();
@@ -83,7 +118,7 @@ app.UseCors(x => x
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials());
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

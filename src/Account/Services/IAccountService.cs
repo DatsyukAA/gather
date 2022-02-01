@@ -1,5 +1,5 @@
 using Account.Entities;
-using Account.Models;
+using Account.Models.Authenticate;
 
 namespace Account.Services
 {
@@ -11,5 +11,6 @@ namespace Account.Services
         IEnumerable<User> GetAll();
         User? GetById(int id);
         AuthenticateResponse? Register(string login, string password, string email, string name, string ip);
+        User? Update(User user, string ip);
     }
 }

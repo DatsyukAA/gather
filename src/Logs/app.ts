@@ -15,8 +15,6 @@ const subscribeExchange = (channel: amqp.Channel, exchangeName: string, exchange
     channel.assertExchange(exchangeName, exchangeType, {
         durable: false
     }, (errExchange, exchangeResult) => {
-        console.log('exchange err', errExchange);
-        console.log('exchange', exchangeResult);
         if (errExchange) reject(errExchange);
         resolve(exchangeResult.exchange)
     })
@@ -51,13 +49,6 @@ const subscribeLog = (channel: amqp.Channel, message: amqp.Message, logLevel: st
 }
 
 withAMQP().then((channel: amqp.Channel) => {
-    subscribeExchange(channel, 'media', 'topic').then((exchange) => {
-
-        subscribeQueue(channel, 'mediaQueue', (message) => {
-            console.log(message)
-        }, exchange, 'media.sent.*');
-    });
-
     subscribeExchange(channel, 'logs').then((exchange) => {
         subscribeQueue(channel, 'logDebug', (message) => {
             if (!!message) console.log('message is null')
@@ -90,3 +81,4 @@ withAMQP().then((channel: amqp.Channel) => {
         }, exchange, 'critical');
     });
 });
+console.log('started')

@@ -70,6 +70,10 @@ public class UserRepository : IRepository<User>
         if (ent != null)
         {
             ent.Id = Id;
+            entity.CreationDate = ent.CreationDate;
+            entity.Password = ent.Password;
+            entity.RefreshTokens = ent.RefreshTokens;
+            ent.IpHistory = ent.IpHistory;
             _context.Users.Update(ent);
             _logger.LogInformation($"User with id {Id} was removed.");
             _context.SaveChanges();

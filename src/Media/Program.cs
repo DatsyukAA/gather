@@ -21,13 +21,15 @@ var services = new ServiceCollection()
         configuration.Bus = Rabbit.CreateBus("localhost");
     })))
     .AddScoped(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger<VkApi>())
-    .AddScoped(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(Program)))
+    .AddScoped(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger<Discord>())
+    .AddScoped(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger<Vk>())
+    .AddScoped(sp => sp.GetRequiredService<ILoggerFactory>().CreateLogger<Media.Clients.Impl.Telegram>())
     .AddSingleton(sp => Rabbit.CreateBus("localhost"))
     .AddSingleton<DiscordClient>()
     .AddSingleton<Discord>()
     .AddSingleton(sp => new VkApi(sp.GetRequiredService<ILogger<VkApi>>()))
     .AddSingleton<Vk>()
-    .AddSingleton<Media.Clients.Impl.Telegram>()
+    .AddSingleton<Media.Clients.Impl.Telegram>(sp => new Media.Clients.Impl.Telegram(configuration, sp.GetRequiredService<ILogger<Media.Clients.Impl.Telegram>>()))
     .BuildServiceProvider();
 
 IBus eventBus = services.GetRequiredService<IBus>();

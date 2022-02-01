@@ -1,8 +1,9 @@
-using Account.Models;
+using Account.Models.Authenticate;
 using Microsoft.Extensions.Options;
 using Account.Entities;
 using Account.Data;
 using Security;
+using System.Security.Claims;
 
 namespace Account.Services.Impl
 {
@@ -11,12 +12,15 @@ namespace Account.Services.Impl
         private readonly IRepository<User> _accounts;
         private readonly AppSettings _appSettings;
         private readonly ITokenService _tokens;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AccountService(
             IRepository<User> accountRepos,
             IOptions<AppSettings> appSettings,
-            ITokenService tokens)
+            ITokenService tokens,
+            IHttpContextAccessor httpContextAccessor)
         {
+            _httpContextAccessor = httpContextAccessor;
             _accounts = accountRepos;
             _appSettings = appSettings.Value;
             _tokens = tokens;
@@ -53,6 +57,7 @@ namespace Account.Services.Impl
             var refreshToken = _tokens.GenerateRefreshToken(ip);
 
             user.RefreshTokens.Add(refreshToken);
+            user.IpHistory.Add(ip);
             _accounts.Update(user.Id, user);
 
             return new AuthenticateResponse(user, jwtToken, refreshToken.Token);
@@ -98,6 +103,16 @@ namespace Account.Services.Impl
                 LastName = names[1] ?? ""
             });
             return Authenticate(login, password, ip);
+        }
+
+        public User? Update(User user, string ip)
+        {
+            var currentUserId = _httpContextAccessor.HttpContext?.User.Claims
+            .FirstOrDefault(claim => claim.Type == ClaimTypes.Name)?.Value;
+            var currentUser = _accounts.Single(user => user.Id.ToString() == currentUserId);
+            var result = _accounts.Update(user.Id, user);
+            if (result == null) return null;
+            return result;
         }
     }
 }

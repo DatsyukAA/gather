@@ -9,19 +9,19 @@ export class NotificationService implements INotificationService {
     constructor(notificationRepo: IRepository<Notification>) {
         this._notificationRepo = notificationRepo;
     }
-    subscribe(callback: (notification: Notification) => void, channelId: string = 'all'): void {
+    subscribe(callback: (notification: Notification) => void, channelId: string = 'public'): void {
         if (!this._callbacks[channelId]) this._callbacks[channelId] = [];
         (this._callbacks[channelId] as Function[]).push(callback)
     }
 
-    unsubscribe(callback: (notification: Notification) => void, channelId: string = 'all'): void {
+    unsubscribe(callback: (notification: Notification) => void, channelId: string = 'public'): void {
         if (channelId && !this._callbacks[channelId]) return;
         if (channelId)
             (this._callbacks[channelId] as ((notification: Notification) => void)[]).filter(x => x != callback)
     }
-    notify(notification: Notification, channelId: string = 'all'): void {
+    notify(notification: Notification, channelId: string = 'public'): void {
         this._notificationRepo.Insert(notification);
-        if (channelId !== 'all') {
+        if (channelId !== 'public') {
             this._callbacks[channelId].map((element: (notification: Notification) => void) => {
                 try {
                     element(notification);
