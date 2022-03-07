@@ -10,7 +10,6 @@ namespace Account.Services.Impl
     public class AccountService : IAccountService
     {
         private readonly IRepository<User> _accounts;
-        private readonly AppSettings _appSettings;
         private readonly ITokenService _tokens;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -22,7 +21,6 @@ namespace Account.Services.Impl
         {
             _httpContextAccessor = httpContextAccessor;
             _accounts = accountRepos;
-            _appSettings = appSettings.Value;
             _tokens = tokens;
         }
         public AuthenticateResponse? RefreshToken(string token, string ip)
