@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Account.Entities;
 using Account.EventBus;
 using Account.Models;
@@ -16,10 +17,10 @@ public class AuthenticationController : ControllerBase
 {
     private readonly IAccountService _accountService;
 
-    private readonly IBus Bus;
+    private readonly IBus? Bus;
     private readonly ILogger<AuthenticationController> _logger;
 
-    public AuthenticationController(IAccountService accountService, IBus bus, ILogger<AuthenticationController> logger)
+    public AuthenticationController(IAccountService accountService, IBus? bus, ILogger<AuthenticationController> logger)
     {
         _accountService = accountService;
         Bus = bus;
@@ -29,7 +30,7 @@ public class AuthenticationController : ControllerBase
     [HttpGet("~/")]
     public ActionResult<User> GetAuthorizedAccount()
     {
-        var users = _accountService.GetById(int.Parse(Request.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value ?? "0"));
+        var users = _accountService.GetById(Request.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value ?? string.Empty);
         _logger.LogInformation($"Current user requested.");
         return Ok(users);
     }
@@ -37,8 +38,8 @@ public class AuthenticationController : ControllerBase
     [HttpPut("~/")]
     public ActionResult<User> Update([FromBody] User model)
     {
-        var response = _accountService.Update(model, this.IpAddress());
-
+        _accountService.Update(model, this.IpAddress());
+        var response = _accountService.Authenticate(model.Username, model.Password, this.IpAddress());
         if (response == null)
         {
             _logger.LogInformation($"User {model.Username} or email {model.Email} not found.");
@@ -48,7 +49,7 @@ public class AuthenticationController : ControllerBase
         this.setCookie("refreshToken", response.RefreshToken);
 
         _logger.LogInformation($"User {response.Id}[{response.Username}] registered.");
-        Bus.SendExchangeAsync("notifications", new Notification
+        Bus?.SendExchangeAsync("notifications", new Notification
         {
             Sender = response.Id.ToString(),
             Title = "User was registered",
@@ -58,7 +59,7 @@ public class AuthenticationController : ControllerBase
     }
 
     [HttpGet("~/{id}")]
-    public ActionResult<User> GetById(int id)
+    public ActionResult<User> GetById(string id)
     {
         var user = _accountService.GetById(id);
         if (user == null)
@@ -71,7 +72,7 @@ public class AuthenticationController : ControllerBase
     }
 
     [HttpGet("~/{id}/refresh-tokens")]
-    public ActionResult<IEnumerable<RefreshToken>> GetRefreshTokens(int id)
+    public ActionResult<IEnumerable<RefreshToken>> GetRefreshTokens(string id)
     {
         var user = _accountService.GetById(id);
         if (user == null)
@@ -98,7 +99,7 @@ public class AuthenticationController : ControllerBase
         this.setCookie("refreshToken", response.RefreshToken);
 
         _logger.LogInformation($"User {response.Id}[{response.Username}] registered.");
-        Bus.SendExchangeAsync("notifications", new Notification
+        Bus?.SendExchangeAsync("notifications", new Notification
         {
             Sender = response.Id.ToString(),
             Title = "User was registered",

@@ -1,13 +1,17 @@
 using Account.Entities;
+using Account.Entities.UserAgent;
 using Microsoft.EntityFrameworkCore;
 
 namespace Account.Data.EF;
 public class AccountContext : DbContext
 {
     public DbSet<User> Users { get; set; }
+    public DbSet<UserStatistic> UsersStatistics { get; set; }
     private readonly ILogger<AccountContext> _logger;
 
+#pragma warning disable CS8618 // Поле, не допускающее значения NULL, должно содержать значение, отличное от NULL, при выходе из конструктора. Возможно, стоит объявить поле как допускающее значения NULL.
     public AccountContext(DbContextOptions<AccountContext> options, ILogger<AccountContext> logger) : base(options)
+#pragma warning restore CS8618 // Поле, не допускающее значения NULL, должно содержать значение, отличное от NULL, при выходе из конструктора. Возможно, стоит объявить поле как допускающее значения NULL.
     {
         _logger = logger;
     }
@@ -19,7 +23,7 @@ public class AccountContext : DbContext
         modelBuilder.Entity<User>().HasData(
             new User
             {
-                Id = 1,
+                Id = Guid.NewGuid().ToString(),
                 FirstName = "Anton",
                 Email = "datsyukaa@gmail.com",
                 LastName = "Datsyuk",
@@ -36,13 +40,12 @@ public class AccountContext : DbContext
                 + "+bhSPsvD/BXfvLYhpnH6/G9Q/wBWgn66X+09D/LGi15DVTx3iEa7Tb7mO9/4YebeWxaN8jz/AGZM5TA8F/PJ/L3YmSp5fsfwmASNh5/T0Xm+TYUX1Pt+19sMTX8tJz/cPRj7CROiPuE85AsV08Jbc6lxHnqH5T+yorsR2KVzjv6R5NCwRyTA9n3OjRy7cyYNcmaP+C8oXJ8ixPjYphc+oDQ6xuPE58dmLj+SvEknttO5A9+PqzjDb+YeWR2GEeSph7SGSDD3Br56ohwdfu6MWU4/xMOGt4AkJ11s6+4P7tZryyO+rE6/xN0xfZ1ihvr6unXI/wDoTu+JlM6QjTe+4fv22ddm5gnLWHIzIUB/uZgcJ21YgAIChr1dvhs89f8ANsoP2kscf6ZJgB01CsH6lqp5sXm1R4MZ6dg+zgAfgM59796tmYPaH/kjT9Cdf7GVAO9B7/snQbIBloYb9wyG8eBg+u3iK+xP+CIm3rD/AGv+NTTG9Of5uwGmt0uAH6ywOcwDlr2CxtWeh5z8igEGcqbtnmJ9WzzxJ4efqfC8/Vj9ycY+55vkg4Mnhzstzo+5TRB95LoPL3eQjZz/AIt6uw2i5/Lb4L9oHVLN+ufdp3n+bRQXjl1Z2Gn/ALJU8v8AYdak482H6Y88S8+psb0F1Ejzjf7MXjv5Hgzo6D9kYNJrsy9np+WGcYekwuMy3Xv+4w4bz8iGeYV74j7O2Tvl+3HN2/ohHMLpmlmo4erfhwepeXCQdMTJnT7jw7kycQJlQf6m8HA+p+25LnJKviPU9HGbCccLih2PcQ5n36QvHN8kX/0MJXX6Pb94rmQ15F+5aH9wm0oc+5Hm7xNfbYRp7G01T0EZhCYz12U2Nnjwh01gj/Eff4+SWIQxVHrd8PuyiP4+pqHH32VsH+5Hm7+TmNG36M/byCNPuJXHWLAzbIHyROQJL6V+EB+n0wPEHsFv3G2AI+MJRm0+rq7v4tAQ7et4+oBXNPUxK9wFC6cn7P8AMnnTcOQ2l7IF5nOmG+uQE6LIHiwnDsfzLFxvpj4lDjyFPaxMThZvM33sNeezrp/1YYD+to1NQhzJnMYN5sbamWIL6INDxcMEvAPJqPPrX6tYfdw3VaFc2e882TPXuUAcC19LU8BZaZmTnUvKDBB6OsJ3zYH1/q4wZ7LFxp5sUkfD3IVGYLpMACAez7t1mbOEHpKud/J6tH0wJ/3bWGglhIByETFGAdH9XEXz7sb9wzeZvCPINxLTFE+m0Wz4LLgTJh7v3D8Dn1Nej+y8B37+4eMnbvN9MDph1mB5J+Rlrf7CnBOdsG5mXS72MedvO7hbCH9wnXR6Z5r593gcT8snMdhGOkqHvCrhrbhswTj992EBBp6T14C4NPfyRu9hbi2qYJI8E2e7M+p8Tly7B7tHvYTcaPMFh4bXTG+0Ba8IxAfazYae7zAb6hR4/IXTlsY23xsgHbemp09ltMX9Vso9R4fPcnXTY6+l7PiUwO2Rvj7kQhyUovM0AeWIRDWGOZdHNT+gfNqMXJMET7m0J08TUY47sQ9Mukn8ZDh/BOKt32WcNz0zum0dKw7Vn1ZtFU+7UHw/UlL/ALu4OEmZ5JnyZYnBkERsh6d9XbvP5Dmt5Cw4n5cXP4fsH7Ey97+l4SdmNG/yVizDgUfO+oBg/wBlmo5vSyhGPuKcpkxnhs31P7bOz/UMCZ/Y3NzxuM/gyj7FA6vQGOInPOQhSCIFX1BmP8XpCchnY8cMEqP8WnQA/ZBIIHQz6IwDzCd0vokfXn1c6yCs1/xa8D/cM4Bk6aEk4fyV1dupLyfy6MTWQ8MLi5Z5YANWfVjD6P2O2cJJvqF4P0NvkPvlp7ZXC5NTVljucnxkCxxp+wOzDZ3fXLovyjDjMv8AlCIbAD/KL9tBeBYt5fVFGvfZJbAR5F36ZPNuSExP6SuhkveFkYkRxLimyYgu3azp7CIbF9mLg+ZJwctLwhfhPqAoHfyJTQ/UumnbQBZ/IwLOBDHiGS6IymCmuvqOXJn7kJLTPJD4XJzg3+zpw2X6h9bLab9NlZ+vV9hn1d9C/jdA3JKD6CyvHiI2qf4jNiUeHLwGH6t8C4wd3SQn/PuL0nqR04SvJADv+o3oCTwDfsj5Us5iS2bjYT6L1Lw8tuV/i1RkEoV52KKFPELeg8sIk0v0FoxxsfmFnR/2nyYi7NdsoFTnf+BkO1/5lZcr/qfVWMUMD3aUArnhDw2CNjQuH+wv2/b/2Q=="
             }
         );
-
         base.OnModelCreating(modelBuilder);
     }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
-        this.SavedChanges += (sender, args) =>
+        SavedChanges += (sender, args) =>
         {
             _logger.LogInformation("Changes saved.");
         };

@@ -16,6 +16,11 @@ namespace Account.EventBus
             _connection = _factory.CreateConnection();
             return new RabbitBus(_connection);
         }
+        public static IBus StubBus()
+        {
+            return new RabbitBus(null);
+        }
+
         public static IBus CreateBus(
         string hostName,
         ushort hostPort,

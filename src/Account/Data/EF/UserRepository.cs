@@ -12,7 +12,7 @@ public class UserRepository : IRepository<User>
         _context = context;
         _logger = logger;
     }
-    public User? Delete(int Id)
+    public User? Delete(string Id)
     {
         _logger.LogInformation($"Trying to delete user with id {Id}.");
         var entity = _context.Users.Where(x => x.Id == Id).SingleOrDefault();
@@ -40,7 +40,7 @@ public class UserRepository : IRepository<User>
         return result.Entity;
     }
 
-    public IEnumerable<User> List(Func<User, bool>? predicate = null, int skip = default, int lastId = default, int take = default)
+    public IEnumerable<User> List(Func<User, bool>? predicate = null, int skip = default, string? lastId = default, int take = default)
     {
         _logger.LogInformation($"Trying to fetch users.\nPredicate is null: {predicate == null}\nTake: {take}\nSkip:{skip}\nPrevious last id: {lastId}");
         var result = predicate != null ? _context.Users.Where(predicate) : _context.Users;
@@ -63,18 +63,14 @@ public class UserRepository : IRepository<User>
         return result;
     }
 
-    public User? Update(int Id, User entity)
+    public User? Update(string Id, User entity)
     {
         _logger.LogInformation($"Trying to update user with id {Id}");
         var ent = _context.Users.Where(x => x.Id == Id).SingleOrDefault();
         if (ent != null)
         {
-            ent.Id = Id;
-            entity.CreationDate = ent.CreationDate;
-            entity.Password = ent.Password;
-            entity.RefreshTokens = ent.RefreshTokens;
-            ent.IpHistory = ent.IpHistory;
-            _context.Users.Update(ent);
+            entity.Id = Id;
+            _context.Users.Update(entity);
             _logger.LogInformation($"User with id {Id} was removed.");
             _context.SaveChanges();
         }

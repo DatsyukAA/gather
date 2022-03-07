@@ -25,7 +25,7 @@ namespace Account.Logging
                 LogLevel = logLevel,
                 Message = state?.ToString() ?? JsonConvert.SerializeObject(state)
             };
-            _bus.SendExchangeAsync(_exchange, log, logLevel.ToString().ToLower());
+            _bus?.SendExchangeAsync(_exchange, log, logLevel.ToString().ToLower());
         }
     }
 }

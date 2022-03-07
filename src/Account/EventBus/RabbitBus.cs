@@ -7,14 +7,15 @@ namespace Account.EventBus
 {
     public class RabbitBus : IBus
     {
-        private IConnection _connection;
+        private IConnection? _connection;
 
-        internal RabbitBus(IConnection conn)
+        internal RabbitBus(IConnection? conn)
         {
             _connection = conn;
         }
         public async Task SendQueueAsync<T>(string queue, T message)
         {
+            if (_connection == null) return;
             await Task.Run(() =>
             {
                 var _channel = _connection.CreateModel();
@@ -28,6 +29,7 @@ namespace Account.EventBus
 
         public async Task SendExchangeAsync<T>(string exchange, T message, string? routingKey = null, string exchangeType = "direct")
         {
+            if (_connection == null) return;
             await Task.Run(() =>
             {
                 var _channel = _connection.CreateModel();
@@ -40,6 +42,7 @@ namespace Account.EventBus
         }
         public async Task ReceiveAsync<T>(string queue, Action<T?> onMessage, string? exchange = null, string? exchangeType = null, string? routingKey = null)
         {
+            if (_connection == null) return;
             var _channel = _connection.CreateModel();
             if (exchange != null)
             {

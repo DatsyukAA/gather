@@ -57,7 +57,6 @@ namespace Account.Services.Impl
             var refreshToken = _tokens.GenerateRefreshToken(ip);
 
             user.RefreshTokens.Add(refreshToken);
-            user.IpHistory.Add(ip);
             _accounts.Update(user.Id, user);
 
             return new AuthenticateResponse(user, jwtToken, refreshToken.Token);
@@ -84,7 +83,7 @@ namespace Account.Services.Impl
             return _accounts.List();
         }
 
-        public User? GetById(int id)
+        public User? GetById(string id)
         {
             return _accounts.Single(x => x.Id == id);
         }

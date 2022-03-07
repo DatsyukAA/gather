@@ -14,6 +14,9 @@ using Account.Logging;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using RabbitMQ.Client.Exceptions;
+using Account.Middlewares;
+using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +28,14 @@ builder.Host.ConfigureLogging(builder =>
         builder.AddRabbitLogger(configuration =>
         {
             configuration.Exchange = "logs";
-            configuration.Bus = Rabbit.CreateBus("localhost");
+            try
+            {
+                configuration.Bus = Rabbit.CreateBus("localhost");
+            }
+            catch (BrokerUnreachableException ex)
+            {
+                Console.Error.WriteLine($"[RABBIT MQ][ERROR] {ex.Message}");
+            }
         });
     }
     catch (BrokerUnreachableException ex)
@@ -56,25 +66,25 @@ services.AddSingleton<RandomNumberGenerator>(sp => RandomNumberGenerator.Create(
 // Authentication
 var key = Encoding.ASCII.GetBytes(appSettings.Secret);
 services.AddAuthentication(x =>
-            {
-                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(x =>
-            {
-                x.RequireHttpsMetadata = false;
-                x.SaveToken = true;
-                x.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
 
 services.AddScoped<IRepository<User>, UserRepository>();
+services.AddScoped<IRepository<UserStatistic>, UserStatisticRepository>();
 
 services.AddSingleton<IBus>(serviceProvider =>
 {
@@ -87,8 +97,10 @@ services.AddSingleton<IBus>(serviceProvider =>
     {
         logger?.LogError($"RabbitMQ is unreachable.\nTrace: {ex.StackTrace}");
     }
-    return null;
+    return Rabbit.StubBus();
 });
+
+services.AddTransient<UserStatisticMiddleware>();
 
 services.AddHttpContextAccessor();
 services.AddCors();
@@ -98,6 +110,12 @@ services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
 var app = builder.Build();
+using (var serviceScope = app.Services.GetService<IServiceScopeFactory>()?.CreateScope())
+{
+    var IdentityContext = serviceScope?.ServiceProvider.GetRequiredService<AccountContext>();
+    IdentityContext?.Database.EnsureCreated();
+}
+
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     Predicate = (check) => true,
@@ -107,25 +125,22 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
     }
 });
-using (var serviceScope = app.Services.GetService<IServiceScopeFactory>()?.CreateScope())
-{
-    var IdentityContext = serviceScope?.ServiceProvider.GetRequiredService<AccountContext>();
-    IdentityContext?.Database.EnsureCreated();
-}
-
 app.UseCors(x => x
                 .SetIsOriginAllowed(origin => true)
                 .AllowAnyMethod()
                 .AllowAnyHeader()
                 .AllowCredentials());
 
+app.UseHttpsRedirection();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseUserStatisticMiddleware();
 app.MapControllers();
 app.Run();

@@ -9,7 +9,7 @@ namespace Account.Services
         AuthenticateResponse? RefreshToken(string token, string ip);
         bool RevokeToken(string token, string ip);
         IEnumerable<User> GetAll();
-        User? GetById(int id);
+        User? GetById(string id);
         AuthenticateResponse? Register(string login, string password, string email, string name, string ip);
         User? Update(User user, string ip);
     }
