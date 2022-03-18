@@ -23,6 +23,7 @@ namespace Media.Clients.Impl
         public Telegram(string token)
         {
             Client = new TelegramBotClient(token);
+            Logger?.LogInformation($"[{GetType().Name}] Client created.");
         }
 
         public void Dispose()
