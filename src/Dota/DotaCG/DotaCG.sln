@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotaCG", "DotaCG.csproj", "{4E411773-22AC-497D-90CA-6D8E66C25E29}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotaCG.Tests", "..\..\..\tests\DotaCG.Tests\DotaCG.Tests.csproj", "{7D3EF06B-88D2-484A-B7F6-83E342738CCE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4E411773-22AC-497D-90CA-6D8E66C25E29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E411773-22AC-497D-90CA-6D8E66C25E29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E411773-22AC-497D-90CA-6D8E66C25E29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E411773-22AC-497D-90CA-6D8E66C25E29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D3EF06B-88D2-484A-B7F6-83E342738CCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D3EF06B-88D2-484A-B7F6-83E342738CCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D3EF06B-88D2-484A-B7F6-83E342738CCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D3EF06B-88D2-484A-B7F6-83E342738CCE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
