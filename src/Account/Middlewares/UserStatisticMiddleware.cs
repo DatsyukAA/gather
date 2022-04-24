@@ -37,14 +37,6 @@ namespace Account.Middlewares
             if (statistic == null)
                 _userStatisticRepository.Insert(new()
                 {
-                    Paths = new()
-                    {
-                        context.Request.Path
-                    },
-                    UAHistory = new()
-                    {
-                        new(context.Request.Headers["User-Agent"].ToString()),
-                    },
                     Referrer = user,
                     IpHistory = new List<IPHistory> {
                         new(){
@@ -54,8 +46,6 @@ namespace Account.Middlewares
                 });
             else
             {
-                statistic.UAHistory.Add(new(context.Request.Headers["User-Agent"].ToString()));
-                statistic.Paths.Add(context.Request.Path);
                 statistic.IpHistory.Add(new IPHistory
                 {
                     Ip = IpAddress(context)

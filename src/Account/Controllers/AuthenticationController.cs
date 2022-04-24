@@ -17,13 +17,13 @@ public class AuthenticationController : ControllerBase
 {
     private readonly IAccountService _accountService;
 
-    private readonly IBus? Bus;
+    private readonly IBus? _bus;
     private readonly ILogger<AuthenticationController> _logger;
 
     public AuthenticationController(IAccountService accountService, IBus? bus, ILogger<AuthenticationController> logger)
     {
         _accountService = accountService;
-        Bus = bus;
+        _bus = bus;
         _logger = logger;
     }
 
@@ -49,7 +49,7 @@ public class AuthenticationController : ControllerBase
         this.setCookie("refreshToken", response.RefreshToken);
 
         _logger.LogInformation($"User {response.Id}[{response.Username}] registered.");
-        Bus?.SendExchangeAsync("notifications", new Notification
+        _bus?.SendExchangeAsync("notifications", new Notification
         {
             Sender = response.Id.ToString(),
             Title = "User was registered",
@@ -99,7 +99,7 @@ public class AuthenticationController : ControllerBase
         this.setCookie("refreshToken", response.RefreshToken);
 
         _logger.LogInformation($"User {response.Id}[{response.Username}] registered.");
-        Bus?.SendExchangeAsync("notifications", new Notification
+        _bus?.SendExchangeAsync("notifications", new Notification
         {
             Sender = response.Id.ToString(),
             Title = "User was registered",

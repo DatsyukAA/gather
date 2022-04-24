@@ -133,14 +133,15 @@ app.UseCors(x => x
 
 app.UseHttpsRedirection();
 app.UseRouting();
-app.UseAuthentication();
-app.UseAuthorization();
-
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseAuthentication();
+app.UseAuthorization();
+
+
 app.UseUserStatisticMiddleware();
 app.MapControllers();
 app.Run();

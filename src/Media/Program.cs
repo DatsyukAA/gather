@@ -1,8 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
+
 using DSharpPlus;
 using Media.Clients.Impl;
 using Media.EventBus;
 using Media.Logging;
+using Media.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -13,7 +15,7 @@ IConfiguration configuration = new ConfigurationBuilder()
                 .Build();
 
 var services = new ServiceCollection()
-    .AddSingleton<IConfiguration>(sp => configuration)
+    .AddSingleton(sp => configuration)
     .AddSingleton(sp => LoggerFactory.Create(builder => builder.AddConsole()))
     .AddSingleton(sp => LoggerFactory.Create(builder => builder.AddRabbitLogger(configuration =>
     {
@@ -29,14 +31,14 @@ var services = new ServiceCollection()
     .AddSingleton<Discord>()
     .AddSingleton(sp => new VkApi(sp.GetRequiredService<ILogger<VkApi>>()))
     .AddSingleton<Vk>()
-    .AddSingleton<Media.Clients.Impl.Telegram>(sp => new Media.Clients.Impl.Telegram(configuration, sp.GetRequiredService<ILogger<Media.Clients.Impl.Telegram>>()))
+    .AddSingleton(sp => new Media.Clients.Impl.Telegram(configuration, sp.GetRequiredService<ILogger<Media.Clients.Impl.Telegram>>()))
     .BuildServiceProvider();
 
 IBus eventBus = services.GetRequiredService<IBus>();
 
-static async Task SendToExchange(IBus amqp, Media.Models.Message message)
+static async Task SendToExchange(IBus amqp, Message message)
 {
-    await amqp.SendExchangeAsync("media", message, $"media.receive.{message.MediaService}", "direct");
+    await amqp.SendExchangeAsync("media", message, $"media.receive.{message.MediaService}");
 }
 
 var discord = await Task.Factory.StartNew(async () =>
@@ -44,12 +46,12 @@ var discord = await Task.Factory.StartNew(async () =>
     var discord = services.GetRequiredService<Discord>();
     var amqp = services.GetRequiredService<IBus>();
 
-    await discord.Subscribe(async (msg) =>
+    await discord.Subscribe(async msg =>
     {
         await SendToExchange(amqp, msg);
     });
 
-    await eventBus.ReceiveAsync<Media.Models.Message>("mediaDiscord", async (message) =>
+    await eventBus.ReceiveAsync<Message>("mediaDiscord", async message =>
     {
         if (message == null) return;
         await discord.Publish(message.Channel, message);
@@ -65,11 +67,11 @@ var vk = await Task.Factory.StartNew(async () =>
     var vk = services.GetRequiredService<Vk>();
     var amqp = services.GetRequiredService<IBus>();
 
-    await vk.Subscribe(async (msg) =>
+    await vk.Subscribe(async msg =>
     {
         await SendToExchange(amqp, msg);
     });
-    await eventBus.ReceiveAsync<Media.Models.Message>("mediaVk", async (message) =>
+    await eventBus.ReceiveAsync<Message>("mediaVk", async message =>
     {
         if (message == null) return;
         await vk.Publish(message.Channel, message);
@@ -85,11 +87,11 @@ var tg = await Task.Factory.StartNew(async () =>
     var tg = services.GetRequiredService<Media.Clients.Impl.Telegram>();
     var amqp = services.GetRequiredService<IBus>();
 
-    await tg.Subscribe(async (msg) =>
+    await tg.Subscribe(async msg =>
     {
         await SendToExchange(amqp, msg);
     });
-    await eventBus.ReceiveAsync<Media.Models.Message>("mediaTelegram", async (message) =>
+    await eventBus.ReceiveAsync<Message>("mediaTelegram", async message =>
     {
         if (message == null) return;
         await tg.Publish(message.Channel, message);
